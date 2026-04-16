@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insurance Analytics | Innovate Tech</title>
+    <title>Insurance Analytics | Monthly View</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -22,53 +22,45 @@
 <body x-data="insuranceSystem()" x-init="init()">
 
     <div class="bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.3em] py-2 text-center">
-        Real-time Shared Management Ledger • Authorized: Sameer Pokhrel
+        Monthly Management Ledger • Sameer Pokhrel
     </div>
 
     <main class="max-w-7xl mx-auto px-6 py-10">
         
         <div class="flex flex-col md:flex-row justify-between items-end mb-10 pb-6 border-b border-slate-200">
             <div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tighter uppercase">Insurance Reimbursement Monitor</h1>
-                <p class="text-slate-500 font-medium">Tracking processing delays and financial discrepancies</p>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tighter uppercase">Insurance Monitor</h1>
+                <p class="text-slate-500 font-medium" x-text="filterMonth === 'all' ? 'Showing All Time Records' : 'Viewing Records for ' + filterMonth"></p>
             </div>
-            <div class="flex gap-4 mt-4 md:mt-0">
-                <button @click="exportToExcel()" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all text-xs">
-                    📊 DOWNLOAD EXCEL
-                </button>
-                <button @click="openModal()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black hover:bg-black transition-all shadow-xl text-xs">
-                    ＋ LOG NEW CLAIM
-                </button>
+            <div class="flex gap-3 mt-4 md:mt-0">
+                <select x-model="filterMonth" class="bg-white border-2 border-slate-200 px-4 py-4 rounded-2xl font-bold text-sm outline-none focus:border-slate-900">
+                    <option value="all">All Time</option>
+                    <template x-for="m in availableMonths" :key="m">
+                        <option :value="m" x-text="m"></option>
+                    </template>
+                </select>
+                <button @click="exportToExcel()" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all text-xs">📊 EXCEL</button>
+                <button @click="openModal()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black hover:bg-black transition-all shadow-xl text-xs">＋ NEW CLAIM</button>
             </div>
         </div>
 
-        <div class="mb-10 p-8 rounded-[2.5rem] bg-slate-900 text-white shadow-2xl overflow-hidden relative">
-            <div class="relative z-10">
-                <h2 class="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-4">Monthly Efficiency Dashboard</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase">Avg. Processing Time</p>
-                        <p class="text-3xl font-black mt-1" x-text="calculateAvgAging() + ' Days'"></p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase">Settled This Month</p>
-                        <p class="text-3xl font-black mt-1 text-emerald-400" x-text="'Rs. ' + totalSettled()"></p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase">Lost to Deductions</p>
-                        <p class="text-3xl font-black mt-1 text-rose-400" x-text="'Rs. ' + totalDeductions()"></p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase">Pending Claims</p>
-                        <p class="text-3xl font-black mt-1 text-amber-400" x-text="claims.filter(c => !c.depositDate).length"></p>
-                    </div>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div class="p-6 rounded-3xl border border-slate-200 bg-white">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Claims (<span x-text="filterMonth"></span>)</p>
+                <p class="text-4xl font-black text-slate-800" x-text="filteredClaims.length"></p>
             </div>
-            <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
-        </div>
-
-        <div class="mb-8">
-            <input type="text" x-model="search" placeholder="Search by name..." class="w-full max-w-md p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-200 bg-white shadow-sm font-bold">
+            <div class="p-6 rounded-3xl border border-red-100 bg-red-50">
+                <p class="text-[10px] font-black text-red-400 uppercase tracking-widest">Delays (>15 Days)</p>
+                <p class="text-4xl font-black text-red-600" x-text="filteredClaims.filter(c => !c.depositDate && calculateAging(c) > 15).length"></p>
+            </div>
+            <div class="p-6 rounded-3xl border border-slate-200 accent-cream">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Settled Amount</p>
+                <p class="text-2xl font-black text-slate-800" x-text="'Rs. ' + totalSettled()"></p>
+            </div>
+            <div class="p-6 rounded-3xl border border-rose-100 bg-rose-50">
+                <p class="text-[10px] font-black text-rose-400 uppercase tracking-widest">Total Deductions</p>
+                <p class="text-2xl font-black text-rose-700" x-text="'Rs. ' + totalDeductions()"></p>
+            </div>
         </div>
 
         <div class="cream-card rounded-[2rem] overflow-x-auto shadow-sm">
@@ -76,8 +68,8 @@
                 <thead>
                     <tr class="accent-cream border-b border-slate-200">
                         <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Employee & Dates</th>
-                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Financial Breakdown</th>
-                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Efficiency (Aging)</th>
+                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Financials (NPR)</th>
+                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Efficiency</th>
                         <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Settings</th>
                     </tr>
                 </thead>
@@ -87,21 +79,22 @@
                             <td class="px-8 py-6">
                                 <p class="font-black text-slate-800 text-lg uppercase tracking-tight" x-text="item.name"></p>
                                 <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase">
-                                    Received: <span class="text-slate-700" x-text="item.softDate"></span>
+                                    Received: <span class="text-slate-700" x-text="item.softDate"></span><br>
+                                    Hardcopy: <span class="text-slate-700" x-text="item.hardDate || 'Pending'"></span>
                                 </div>
                             </td>
                             <td class="px-8 py-6">
-                                <div class="text-xs font-bold space-y-1">
-                                    <div class="flex justify-between w-48 text-slate-500"><span>Claimed:</span> <span x-text="Number(item.amountClaimed).toLocaleString()"></span></div>
-                                    <div class="flex justify-between w-48 text-emerald-600"><span>Deposited:</span> <span x-text="item.amountDeposited ? Number(item.amountDeposited).toLocaleString() : '---'"></span></div>
-                                    <div class="flex justify-between w-48 text-red-400 border-t pt-1" x-show="item.amountDeposited">
+                                <div class="text-xs font-bold space-y-1 ml-auto w-48 text-right">
+                                    <div class="flex justify-between text-slate-400"><span>Claimed:</span> <span x-text="Number(item.amountClaimed).toLocaleString()"></span></div>
+                                    <div class="flex justify-between text-emerald-600"><span>Deposited:</span> <span x-text="item.amountDeposited ? Number(item.amountDeposited).toLocaleString() : '---'"></span></div>
+                                    <div class="flex justify-between text-red-500 border-t pt-1" x-show="item.amountDeposited">
                                         <span>Deduction:</span> <span x-text="Number(item.amountClaimed - item.amountDeposited).toLocaleString()"></span>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-8 py-6 text-center">
-                                <div class="inline-block px-5 py-1 rounded-xl font-black text-xl shadow-sm border" :class="getAgingClass(item)" x-text="calculateAging(item)"></div>
-                                <p class="text-[8px] font-bold text-slate-300 uppercase mt-2 tracking-widest">Days Passed</p>
+                                <div class="inline-block px-4 py-1 rounded-xl font-black text-xl shadow-sm border" :class="getAgingClass(item)" x-text="calculateAging(item)"></div>
+                                <p class="text-[8px] font-bold text-slate-300 uppercase mt-2">Days Passed</p>
                             </td>
                             <td class="px-8 py-6 text-right space-x-3">
                                 <button @click="editClaim(item)" class="text-blue-500 font-black text-[10px] uppercase">Edit</button>
@@ -117,30 +110,16 @@
             <div class="bg-white w-full max-w-xl rounded-[2.5rem] p-10 shadow-2xl" @click.away="closeModal()">
                 <h3 class="text-2xl font-black mb-8" x-text="isEditing ? 'Update Entry' : 'New Claim Entry'"></h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="md:col-span-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Employee Name</label>
-                        <input type="text" x-model="form.name" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold text-lg">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Amount Claimed</label>
-                        <input type="number" x-model="form.amountClaimed" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Amount Deposited</label>
-                        <input type="number" x-model="form.amountDeposited" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold text-emerald-600">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Softcopy Received Date</label>
-                        <input type="date" x-model="form.softDate" :max="today" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Deposit Date (Closing)</label>
-                        <input type="date" x-model="form.depositDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none">
-                    </div>
+                    <div class="md:col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee Name</label><input type="text" x-model="form.name" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold text-lg"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Claimed Amount</label><input type="number" x-model="form.amountClaimed" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deposited Amount</label><input type="number" x-model="form.amountDeposited" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Softcopy Date</label><input type="date" x-model="form.softDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hardcopy Date</label><input type="date" x-model="form.hardDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none"></div>
+                    <div class="md:col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deposit Date (Closing)</label><input type="date" x-model="form.depositDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none"></div>
                 </div>
                 <div class="flex gap-4 mt-10">
-                    <button @click="saveClaim()" class="flex-1 bg-slate-900 text-white p-5 rounded-2xl font-bold hover:scale-[1.02] transition-transform">Submit Entry</button>
-                    <button @click="closeModal()" class="px-8 text-slate-400 font-bold hover:text-slate-600 transition-colors">Cancel</button>
+                    <button @click="saveClaim()" class="flex-1 bg-slate-900 text-white p-5 rounded-2xl font-bold">Save Record</button>
+                    <button @click="closeModal()" class="px-8 text-slate-400 font-bold">Cancel</button>
                 </div>
             </div>
         </div>
@@ -162,19 +141,28 @@
 
         function insuranceSystem() {
             return {
-                showForm: false, isEditing: false, search: '', claims: [],
+                showForm: false, isEditing: false, filterMonth: 'all', claims: [],
                 today: new Date().toISOString().split('T')[0],
-                form: { id: null, name: '', softDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '' },
+                form: { id: null, name: '', softDate: '', hardDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '' },
                 
                 init() {
                     db.ref('claims').on('value', (snapshot) => {
                         const data = snapshot.val();
                         this.claims = data ? Object.values(data).reverse() : [];
+                        // Set default filter to current month
+                        const current = new Date().toISOString().substring(0, 7);
+                        if (this.availableMonths.includes(current)) this.filterMonth = current;
                     });
                 },
 
+                get availableMonths() {
+                    const months = this.claims.map(c => c.softDate.substring(0, 7));
+                    return [...new Set(months)].sort().reverse();
+                },
+
                 get filteredClaims() {
-                    return this.claims.filter(c => c.name.toLowerCase().includes(this.search.toLowerCase()));
+                    if (this.filterMonth === 'all') return this.claims;
+                    return this.claims.filter(c => c.softDate.startsWith(this.filterMonth));
                 },
 
                 calculateAging(item) {
@@ -185,19 +173,12 @@
                     return diff > 0 ? diff : 0;
                 },
 
-                calculateAvgAging() {
-                    const completed = this.claims.filter(c => c.depositDate);
-                    if (completed.length === 0) return 0;
-                    const totalDays = completed.reduce((sum, c) => sum + this.calculateAging(c), 0);
-                    return (totalDays / completed.length).toFixed(1);
-                },
-
                 totalSettled() {
-                    return this.claims.reduce((sum, c) => sum + parseFloat(c.amountDeposited || 0), 0).toLocaleString();
+                    return this.filteredClaims.reduce((sum, c) => sum + parseFloat(c.amountDeposited || 0), 0).toLocaleString();
                 },
 
                 totalDeductions() {
-                    return this.claims.reduce((sum, c) => c.amountDeposited ? sum + (parseFloat(c.amountClaimed) - parseFloat(c.amountDeposited)) : sum, 0).toLocaleString();
+                    return this.filteredClaims.reduce((sum, c) => c.amountDeposited ? sum + (parseFloat(c.amountClaimed) - parseFloat(c.amountDeposited)) : sum, 0).toLocaleString();
                 },
 
                 getAgingClass(item) {
@@ -206,37 +187,28 @@
                     return days > 15 ? 'aging-danger' : 'aging-normal';
                 },
 
-                countDelays() {
-                    return this.claims.filter(c => !c.depositDate && this.calculateAging(c) > 15).length;
+                exportToExcel() {
+                    let csv = "Employee,Soft Date,Hard Date,Claimed,Deposited,Deduction,Aging\n";
+                    this.filteredClaims.forEach(c => {
+                        csv += `"${c.name}","${c.softDate}","${c.hardDate}","${c.amountClaimed}","${c.amountDeposited}","${c.amountClaimed - (c.amountDeposited || 0)}","${this.calculateAging(c)}"\n`;
+                    });
+                    const link = document.createElement('a');
+                    link.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+                    link.download = `Insurance_Report_${this.filterMonth}.csv`;
+                    link.click();
                 },
 
                 saveClaim() {
-                    if (!this.form.name || !this.form.softDate) return alert('Name and Date required');
                     const id = this.form.id || Date.now();
                     db.ref('claims/' + id).set({ ...this.form, id: id });
                     this.closeModal();
                 },
 
-                exportToExcel() {
-                    let csv = "Employee Name,Softcopy Date,Claimed Amount,Deposited Amount,Deduction,Aging Days,Status\n";
-                    this.claims.forEach(c => {
-                        const deduction = c.amountDeposited ? c.amountClaimed - c.amountDeposited : 0;
-                        const aging = this.calculateAging(c);
-                        const status = c.depositDate ? "Settled" : "Processing";
-                        csv += `"${c.name}","${c.softDate}","${c.amountClaimed}","${c.amountDeposited}","${deduction}","${aging}","${status}"\n`;
-                    });
-                    const hiddenElement = document.createElement('a');
-                    hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-                    hiddenElement.target = '_blank';
-                    hiddenElement.download = `Insurance_Report_${this.today}.csv`;
-                    hiddenElement.click();
-                },
-
                 openModal() { this.isEditing = false; this.resetForm(); this.showForm = true; },
                 closeModal() { this.showForm = false; this.resetForm(); },
                 editClaim(item) { this.form = { ...item }; this.isEditing = true; this.showForm = true; },
-                deleteClaim(id) { if (confirm('Permanently delete?')) db.ref('claims/' + id).remove(); },
-                resetForm() { this.form = { id: null, name: '', softDate: this.today, amountClaimed: 0, amountDeposited: 0, depositDate: '' }; }
+                deleteClaim(id) { if (confirm('Delete?')) db.ref('claims/' + id).remove(); },
+                resetForm() { this.form = { id: null, name: '', softDate: this.today, hardDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '' }; }
             }
         }
     </script>
