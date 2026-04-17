@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insurance Analytics | Secured</title>
+    <title>Private Insurance Analytics | Secure</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -11,115 +11,119 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fdfbf7; }
-        .cream-card { background-color: #ffffff; border: 1px solid #e9e4d9; }
-        .accent-cream { background-color: #f5f2eb; }
-        .aging-danger { color: #dc2626; background-color: #fef2f2; border: 1px solid #fee2e2; }
-        .aging-normal { color: #92400e; background-color: #fffbeb; border: 1px solid #fef3c7; }
-        .aging-final { color: #065f46; background-color: #ecfdf5; border: 1px solid #d1fae5; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .aging-danger { color: #be123c; background-color: #fff1f2; border: 1px solid #ffe4e6; }
+        .aging-warning { color: #92400e; background-color: #fffbeb; border: 1px solid #fef3c7; }
+        .aging-success { color: #166534; background-color: #f0fdf4; border: 1px solid #dcfce7; }
         [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="insuranceSystem()" x-init="init()">
 
-    <div x-show="!isLoggedIn" class="fixed inset-0 bg-[#fdfbf7] z-[1000] flex items-center justify-center p-6">
-        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-200 w-full max-w-md">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter">Office Portal</h1>
-                <p class="text-slate-400 font-bold text-[10px] mt-2 uppercase tracking-widest">Insurance Ledger Login</p>
-            </div>
-            <div class="space-y-5">
-                <input type="email" x-model="loginEmail" placeholder="Email" class="w-full bg-slate-50 border p-4 rounded-2xl outline-none font-bold">
-                <input type="password" x-model="loginPassword" placeholder="Password" class="w-full bg-slate-50 border p-4 rounded-2xl outline-none font-bold">
-                <button @click="login()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-bold">SECURE LOGIN</button>
-                <p x-text="authError" class="text-rose-500 text-xs font-bold text-center"></p>
+    <div x-show="!isLoggedIn" x-cloak class="fixed inset-0 bg-slate-900 z-[1000] flex items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md">
+            <h1 class="text-2xl font-black text-slate-900 uppercase text-center mb-8">Secure Admin Access</h1>
+            <div class="space-y-4">
+                <input type="email" x-model="loginEmail" placeholder="Admin Email" class="w-full bg-slate-50 border p-4 rounded-2xl outline-none font-bold">
+                <input type="password" x-model="loginPassword" placeholder="Master Password" class="w-full bg-slate-50 border p-4 rounded-2xl outline-none font-bold">
+                <button @click="login()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-bold hover:bg-black transition-all">DECRYPT & ENTER</button>
+                <p x-show="authError" x-text="authError" class="text-rose-500 text-xs font-bold text-center"></p>
             </div>
         </div>
     </div>
 
-    <div x-show="isLoggedIn" class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center sticky top-0 z-[200]">
-        <div class="flex items-center gap-4">
-            <div class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs font-black" x-text="userInitial"></div>
-            <div>
-                <p class="text-[8px] font-black text-slate-400 uppercase leading-none">Accessing as</p>
-                <p class="text-[10px] font-bold text-slate-700" x-text="currentUserEmail"></p>
+    <template x-if="isLoggedIn && currentUserEmail === superAdmin">
+        <div class="min-h-screen pb-20">
+            <nav class="bg-white border-b px-8 py-4 flex justify-between items-center sticky top-0 z-[100]">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center text-white font-black">S</div>
+                    <span class="font-black text-slate-900 uppercase tracking-tighter">Private Insurance Vault</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <button @click="exportData()" class="text-xs font-black text-slate-400 hover:text-slate-900 uppercase">Export Reports</button>
+                    <button @click="logout()" class="bg-slate-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-600">Lock Vault</button>
+                </div>
+            </nav>
+
+            <main class="max-w-7xl mx-auto px-6 mt-10">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="bg-white p-8 rounded-[2rem] border shadow-sm">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Total Outstanding</p>
+                        <p class="text-3xl font-black text-slate-900" x-text="'Rs. ' + totalUnsettled().toLocaleString()"></p>
+                    </div>
+                    <div class="bg-rose-600 p-8 rounded-[2rem] text-white shadow-xl shadow-rose-100">
+                        <p class="text-[10px] font-black uppercase mb-2 opacity-60">Pending Claims</p>
+                        <p class="text-3xl font-black" x-text="pendingCount() + ' Records'"></p>
+                    </div>
+                    <div class="bg-slate-900 p-8 rounded-[2rem] text-white">
+                        <p class="text-[10px] font-black uppercase mb-2 opacity-60">Settled this Month</p>
+                        <p class="text-3xl font-black" x-text="'Rs. ' + settledMonth().toLocaleString()"></p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex gap-4">
+                        <select x-model="filterMonth" class="bg-white border rounded-xl px-4 py-2 font-bold text-xs outline-none">
+                            <option value="all">View All Time</option>
+                            <template x-for="m in availableMonths" :key="m"><option :value="m" x-text="m"></option></template>
+                        </select>
+                    </div>
+                    <button @click="openModal()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl">＋ ADD NEW CLAIM</button>
+                </div>
+
+                <div class="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100">
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Employee / Reference</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Financials (Rs.)</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center">Aging Days</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Control</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <template x-for="item in filteredClaims" :key="item.id">
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-8 py-6">
+                                        <p class="font-black text-slate-800 uppercase" x-text="item.name"></p>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase" x-text="'Claimed: ' + item.softDate"></p>
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <p class="text-sm font-black text-slate-700" x-text="Number(item.amountClaimed).toLocaleString()"></p>
+                                        <p class="text-[10px] font-bold text-emerald-500" x-text="item.amountDeposited ? 'Paid: ' + Number(item.amountDeposited).toLocaleString() : 'Waiting Payment'"></p>
+                                    </td>
+                                    <td class="px-8 py-6 text-center">
+                                        <span class="px-4 py-2 rounded-xl font-black text-sm" :class="getAgingClass(item)" x-text="calculateAging(item) + ' Days'"></span>
+                                    </td>
+                                    <td class="px-8 py-6 text-right space-x-4">
+                                        <button @click="editClaim(item)" class="text-slate-400 hover:text-slate-900 font-black text-[10px] uppercase">Edit</button>
+                                        <button @click="deleteClaim(item.id)" class="text-rose-300 hover:text-rose-600 font-black text-[10px] uppercase">Delete</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </template>
+
+    <div x-show="showForm" x-cloak class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xl rounded-[2.5rem] p-10" @click.away="closeModal()">
+            <h3 class="text-xl font-black mb-8 uppercase" x-text="isEditing ? 'Update Claim' : 'New Insurance Claim'"></h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Employee Full Name</label><input type="text" x-model="form.name" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold text-slate-700"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Claim Amount</label><input type="number" x-model="form.amountClaimed" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Deposit Amount</label><input type="number" x-model="form.amountDeposited" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Claim Submitted Date</label><input type="date" x-model="form.softDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-2">Settlement Date</label><input type="date" x-model="form.depositDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
+            </div>
+            <div class="flex gap-4 mt-10">
+                <button @click="saveClaim()" class="flex-1 bg-slate-900 text-white p-5 rounded-2xl font-black">SAVE TO SECURE VAULT</button>
+                <button @click="closeModal()" class="px-8 text-slate-400 font-bold uppercase text-xs">Close</button>
             </div>
         </div>
-        <button @click="logout()" class="text-[10px] font-black text-rose-500 uppercase">Sign Out</button>
     </div>
-
-    <main class="max-w-7xl mx-auto px-6 py-10" x-show="isLoggedIn">
-        <div class="flex flex-col md:flex-row justify-between items-end mb-10 pb-6 border-b border-slate-200">
-            <div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tighter uppercase">Insurance Monitor</h1>
-                <p class="text-slate-500 font-medium" x-text="'Record History Visible to All'"></p>
-            </div>
-            <div class="flex gap-3 mt-4 md:mt-0">
-                <select x-model="filterMonth" class="bg-white border-2 border-slate-200 px-4 py-4 rounded-2xl font-bold text-sm outline-none">
-                    <option value="all">All Time</option>
-                    <template x-for="m in availableMonths" :key="m"><option :value="m" x-text="m"></option></template>
-                </select>
-                <button @click="openModal()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl">＋ NEW CLAIM</button>
-            </div>
-        </div>
-
-        <div class="cream-card rounded-[2rem] overflow-x-auto">
-            <table class="w-full text-left min-w-[1000px]">
-                <thead>
-                    <tr class="accent-cream border-b border-slate-200">
-                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Employee & Activity</th>
-                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Financials</th>
-                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Efficiency</th>
-                        <th class="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 bg-white">
-                    <template x-for="item in filteredClaims" :key="item.id">
-                        <tr class="hover:bg-slate-50/50">
-                            <td class="px-8 py-6">
-                                <p class="font-black text-slate-800 text-lg uppercase" x-text="item.name"></p>
-                                <div x-show="item.lastEditedBy" class="mt-1 flex gap-2">
-                                    <span class="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase" x-text="'By: ' + item.lastEditedBy.split('@')[0] + ' • ' + item.lastEditedAt"></span>
-                                </div>
-                            </td>
-                            <td class="px-8 py-6">
-                                <div class="text-xs font-bold text-right ml-auto w-40">
-                                    <div class="text-slate-400">Claim: <span x-text="Number(item.amountClaimed).toLocaleString()"></span></div>
-                                    <div class="text-emerald-600">Dep: <span x-text="item.amountDeposited || '---'"></span></div>
-                                </div>
-                            </td>
-                            <td class="px-8 py-6 text-center">
-                                <div class="inline-block px-4 py-1 rounded-xl font-black text-xl border" :class="getAgingClass(item)" x-text="calculateAging(item)"></div>
-                            </td>
-                            <td class="px-8 py-6 text-right space-x-3">
-                                <button @click="editClaim(item)" class="text-blue-500 font-black text-[10px] uppercase">Edit</button>
-                                <template x-if="currentUserEmail === superAdmin">
-                                    <button @click="deleteClaim(item.id)" class="text-rose-500 font-black text-[10px] uppercase">Delete</button>
-                                </template>
-                            </td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
-        </div>
-
-        <div x-show="showForm" x-cloak class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div class="bg-white w-full max-w-xl rounded-[2.5rem] p-10" @click.away="closeModal()">
-                <h3 class="text-2xl font-black mb-8" x-text="isEditing ? 'Update Entry' : 'New Claim'"></h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="md:col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase">Employee Name</label><input type="text" x-model="form.name" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Claimed Amount</label><input type="number" x-model="form.amountClaimed" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Deposited Amount</label><input type="number" x-model="form.amountDeposited" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Softcopy Date</label><input type="date" x-model="form.softDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Deposit Date</label><input type="date" x-model="form.depositDate" class="w-full bg-slate-50 border p-4 rounded-2xl mt-1 outline-none font-bold"></div>
-                </div>
-                <div class="flex gap-4 mt-10">
-                    <button @click="saveClaim()" class="flex-1 bg-slate-900 text-white p-5 rounded-2xl font-bold">Save Record</button>
-                    <button @click="closeModal()" class="px-8 text-slate-400 font-bold">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </main>
 
     <script>
         const firebaseConfig = {
@@ -136,42 +140,82 @@
 
         function insuranceSystem() {
             return {
-                isLoggedIn: false, currentUserEmail: '', userInitial: '', superAdmin: 'sameer.pokharel@innovatetech.co',
-                loginEmail: '', loginPassword: '', authError: '', showForm: false, isEditing: false, filterMonth: 'all', claims: [],
-                today: new Date().toISOString().split('T')[0],
+                isLoggedIn: false, currentUserEmail: '', superAdmin: 'sameer.pokharel@innovatetech.co',
+                loginEmail: '', loginPassword: '', authError: '', showForm: false, isEditing: false, 
+                claims: [], filterMonth: 'all', 
                 form: { id: null, name: '', softDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '' },
-                
+
                 init() {
                     firebase.auth().onAuthStateChanged(user => {
-                        if (user) { this.isLoggedIn = true; this.currentUserEmail = user.email; this.userInitial = user.email[0].toUpperCase(); this.loadData(); }
-                        else { this.isLoggedIn = false; }
+                        if (user && user.email === this.superAdmin) {
+                            this.isLoggedIn = true;
+                            this.currentUserEmail = user.email;
+                            this.loadData();
+                        } else {
+                            this.isLoggedIn = false;
+                        }
                     });
                 },
-                login() { firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword).catch(() => this.authError = "Invalid Access"); },
-                logout() { firebase.auth().signOut(); },
-                loadData() { db.ref('claims').on('value', snap => { const d = snap.val(); this.claims = d ? Object.values(d).reverse() : []; }); },
-                get filteredClaims() { return this.filterMonth === 'all' ? this.claims : this.claims.filter(c => c.softDate.startsWith(this.filterMonth)); },
-                get availableMonths() { return [...new Set(this.claims.map(c => c.softDate.substring(0, 7)))].sort().reverse(); },
+                login() {
+                    this.authError = "";
+                    firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword)
+                        .catch(() => this.authError = "Unauthorized Access Attempt.");
+                },
+                logout() { firebase.auth().signOut().then(() => window.location.reload()); },
+                
+                loadData() {
+                    // SECURE NODE: Only your login can access insurance_private/
+                    db.ref('insurance_private').on('value', snap => {
+                        const data = snap.val();
+                        this.claims = data ? Object.values(data).reverse() : [];
+                    });
+                },
+
+                get filteredClaims() {
+                    return this.filterMonth === 'all' ? this.claims : this.claims.filter(c => c.softDate.startsWith(this.filterMonth));
+                },
+                get availableMonths() {
+                    return [...new Set(this.claims.map(c => c.softDate.substring(0, 7)))].sort().reverse();
+                },
+
                 calculateAging(item) {
                     const start = new Date(item.softDate);
                     const end = item.depositDate ? new Date(item.depositDate) : new Date();
                     return Math.max(0, Math.floor((end - start) / 86400000));
                 },
                 getAgingClass(item) {
-                    if (item.depositDate) return 'aging-final';
-                    return this.calculateAging(item) > 15 ? 'aging-danger' : 'aging-normal';
+                    if (item.depositDate) return 'aging-success';
+                    const days = this.calculateAging(item);
+                    return days > 20 ? 'aging-danger' : 'aging-warning';
                 },
+
+                totalUnsettled() { return this.claims.reduce((acc, curr) => acc + (Number(curr.amountClaimed) - Number(curr.amountDeposited || 0)), 0); },
+                pendingCount() { return this.claims.filter(c => !c.depositDate).length; },
+                settledMonth() {
+                    const thisMonth = new Date().toISOString().substring(0, 7);
+                    return this.claims.filter(c => c.depositDate?.startsWith(thisMonth))
+                        .reduce((acc, curr) => acc + Number(curr.amountDeposited), 0);
+                },
+
                 saveClaim() {
                     const id = this.form.id || Date.now();
-                    const data = { ...this.form, id: id, lastEditedBy: this.currentUserEmail, lastEditedAt: new Date().toLocaleString() };
-                    db.ref('claims/' + id).set(data);
+                    db.ref('insurance_private/' + id).set({ ...this.form, id: id });
                     this.closeModal();
                 },
-                deleteClaim(id) { if(confirm('Delete permanently?')) db.ref('claims/' + id).remove(); },
-                openModal() { this.isEditing = false; this.resetForm(); this.showForm = true; },
+                deleteClaim(id) { if(confirm('Delete Record?')) db.ref('insurance_private/' + id).remove(); },
+                exportData() {
+                    let csv = "Employee,Claim Date,Amount,Deposited,Status\n";
+                    this.claims.forEach(c => { csv += `${c.name},${c.softDate},${c.amountClaimed},${c.amountDeposited || 0},${c.depositDate ? 'Settled' : 'Pending'}\n`; });
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.setAttribute('href', url);
+                    a.setAttribute('download', 'Insurance_Report.csv');
+                    a.click();
+                },
+                openModal() { this.isEditing = false; this.form = { id: null, name: '', softDate: new Date().toISOString().split('T')[0], amountClaimed: 0, amountDeposited: 0, depositDate: '' }; this.showForm = true; },
                 closeModal() { this.showForm = false; },
-                editClaim(item) { this.form = { ...item }; this.isEditing = true; this.showForm = true; },
-                resetForm() { this.form = { id: null, name: '', softDate: this.today, amountClaimed: 0, amountDeposited: 0, depositDate: '' }; }
+                editClaim(item) { this.form = { ...item }; this.isEditing = true; this.showForm = true; }
             }
         }
     </script>
