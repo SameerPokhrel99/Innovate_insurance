@@ -94,8 +94,28 @@
                 isLoggedIn: false, currentUserEmail: '', superAdmin: 'sameer.pokharel@innovatetech.co',
                 loginEmail: '', loginPassword: '', showForm: false, claims: [],
                 form: { id: null, name: '', softDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 },
-                init() { firebase.auth().onAuthStateChanged(user => { if(user && user.email === this.superAdmin){ this.isLoggedIn = true; this.currentUserEmail = user.email; this.loadData(); } else { this.isLoggedIn = false; if(user) firebase.auth().signOut(); } }); },
-                login() { firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword); },
+init() { 
+                    firebase.auth().onAuthStateChanged(user => { 
+                        // If NO ONE is logged in, show the login screen
+                        if (!user) {
+                            this.isLoggedIn = false;
+                            return;
+                        }
+
+                        // If SOMEONE is logged in, check if it is SAMEER
+                        if (user.email === this.superAdmin) {
+                            this.isLoggedIn = true; 
+                            this.currentUserEmail = user.email; 
+                            this.loadData(); 
+                        } else {
+                            // If it's a staff member (Sangita/Sanjay/Gunja)
+                            // We do NOT sign them out (so their Leave tab stays open)
+                            // But we do NOT let them see the Insurance dashboard
+                            this.isLoggedIn = false; 
+                            this.authError = "ADMIN ACCESS ONLY: Please log in as Sameer to view this vault.";
+                        }
+                    }); 
+                },                login() { firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword); },
                 logout() { firebase.auth().signOut().then(() => window.location.reload()); },
                 loadData() { db.ref('insurance_private').on('value', snap => { const d = snap.val(); this.claims = d ? Object.values(d).reverse() : []; }); },
                 totalClaimed() { return this.claims.reduce((a, b) => a + Number(b.amountClaimed || 0), 0); },
