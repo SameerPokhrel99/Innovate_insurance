@@ -90,42 +90,63 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         function insuranceSystem() {
-            return {
-                isLoggedIn: false, currentUserEmail: '', superAdmin: 'sameer.pokharel@innovatetech.co',
-                loginEmail: '', loginPassword: '', showForm: false, claims: [],
-                form: { id: null, name: '', softDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 },
-init() { 
-                    firebase.auth().onAuthStateChanged(user => { 
-                        // If NO ONE is logged in, show the login screen
-                        if (!user) {
-                            this.isLoggedIn = false;
-                            return;
-                        }
+    return {
+        isLoggedIn: false, 
+        currentUserEmail: '', 
+        superAdmin: 'sameer.pokharel@innovatetech.co',
+        loginEmail: '', loginPassword: '', showForm: false, claims: [],
+        form: { id: null, name: '', softDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 },
+        
+        init() { 
+            firebase.auth().onAuthStateChanged(user => { 
+                // CRITICAL FIX: 
+                // If the person logged in is NOT Sameer, the Insurance app 
+                // will act as if NO ONE is logged in. 
+                // It will NOT override Sangita in the other tab.
+                if (user && user.email === this.superAdmin) { 
+                    this.isLoggedIn = true; 
+                    this.currentUserEmail = user.email; 
+                    this.loadData(); 
+                } else { 
+                    this.isLoggedIn = false; 
+                } 
+            }); 
+        },
 
-                        // If SOMEONE is logged in, check if it is SAMEER
-                        if (user.email === this.superAdmin) {
-                            this.isLoggedIn = true; 
-                            this.currentUserEmail = user.email; 
-                            this.loadData(); 
-                        } else {
-                            // If it's a staff member (Sangita/Sanjay/Gunja)
-                            // We do NOT sign them out (so their Leave tab stays open)
-                            // But we do NOT let them see the Insurance dashboard
-                            this.isLoggedIn = false; 
-                            this.authError = "ADMIN ACCESS ONLY: Please log in as Sameer to view this vault.";
-                        }
-                    }); 
-                },                login() { firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword); },
-                logout() { firebase.auth().signOut().then(() => window.location.reload()); },
-                loadData() { db.ref('insurance_private').on('value', snap => { const d = snap.val(); this.claims = d ? Object.values(d).reverse() : []; }); },
-                totalClaimed() { return this.claims.reduce((a, b) => a + Number(b.amountClaimed || 0), 0); },
-                totalSettled() { return this.claims.reduce((a, b) => a + Number(b.amountDeposited || 0), 0); },
-                saveClaim() { const id = this.form.id || Date.now(); db.ref('insurance_private/'+id).set({...this.form, id: id}); this.showForm = false; },
-                deleteClaim(id) { if(confirm('Delete?')) db.ref('insurance_private/'+id).remove(); },
-                openModal() { this.form = { id: null, name: '', softDate: new Date().toISOString().split('T')[0], amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 }; this.showForm = true; },
-                editClaim(item) { this.form = {...item}; this.showForm = true; }
-            }
-        }
+        login() { 
+            // Use 'setPersistence' so this login stays only in this tab/window
+            firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
+                .then(() => {
+                    return firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword);
+                })
+                .then(() => { window.location.reload(); })
+                .catch(err => alert("Login Failed: Admin Only"));
+        },
+
+        logout() { 
+            // We only sign out the current user, we don't clear the whole browser
+            firebase.auth().signOut().then(() => {
+                this.isLoggedIn = false;
+                window.location.reload();
+            });
+        },
+
+        loadData() { 
+            db.ref('insurance_private').on('value', snap => { 
+                const d = snap.val(); 
+                this.claims = d ? Object.values(d).reverse() : []; 
+            }); 
+        },
+        
+        // ... rest of your math functions (totalClaimed, totalSettled, etc.) ...
+        totalClaimed() { return this.claims.reduce((a, b) => a + Number(b.amountClaimed || 0), 0); },
+        totalSettled() { return this.claims.reduce((a, b) => a + Number(b.amountDeposited || 0), 0); },
+        saveClaim() { const id = this.form.id || Date.now(); db.ref('insurance_private/'+id).set({...this.form, id: id}); this.showForm = false; },
+        deleteClaim(id) { if(confirm('Delete?')) db.ref('insurance_private/'+id).remove(); },
+        openModal() { this.form = { id: null, name: '', softDate: new Date().toISOString().split('T')[0], amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 }; this.showForm = true; },
+        editClaim(item) { this.form = {...item}; this.showForm = true; }
+    }
+}
     </script>
 </body>
 </html>
