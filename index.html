@@ -3,26 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Innovate Tech | Management Portals</title>
+    <title>Insurance Analytics | Executive Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fdfbf7; }</style>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: white; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); color: white; }
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
-    <div class="max-w-md w-full text-center">
-        <h1 class="text-4xl font-black text-slate-900 uppercase tracking-tighter mb-12 text-center">Innovate Tech<br>System Access</h1>
-        
-        <div class="space-y-4">
-            <a href="leave.html" class="block w-full bg-indigo-600 text-white p-8 rounded-[2rem] font-black text-xl hover:scale-105 transition-transform shadow-xl shadow-indigo-100 uppercase">
-                Staff Leave Tracker
-            </a>
+<body x-data="insuranceSystem()" x-init="init()">
 
-            <a href="insurance.html" class="block w-full bg-slate-900 text-white p-8 rounded-[2rem] font-black text-xl hover:scale-105 transition-transform shadow-xl shadow-slate-200 uppercase">
-                Insurance Vault
-            </a>
+    <div x-show="!isLoggedIn" x-cloak class="fixed inset-0 bg-[#0f172a] z-[1000] flex items-center justify-center p-6">
+        <div class="glass-card p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl">
+            <h1 class="text-3xl font-black text-white uppercase tracking-tighter text-center mb-8">Insurance Admin</h1>
+            <div class="space-y-4">
+                <input type="email" x-model="loginEmail" placeholder="Email" class="w-full input-dark p-4 rounded-2xl outline-none font-bold">
+                <input type="password" x-model="loginPassword" placeholder="Password" class="w-full input-dark p-4 rounded-2xl outline-none font-bold">
+                <button @click="login()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-black">LOG IN</button>
+            </div>
         </div>
-        
-        <p class="mt-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Authorized Personnel Only</p>
     </div>
+
+    <template x-if="isLoggedIn && currentUserEmail === superAdmin">
+        <div class="min-h-screen p-6 md:p-12">
+            <div class="max-w-7xl mx-auto flex justify-between items-center mb-12">
+                <div>
+                    <h1 class="text-4xl font-black tracking-tighter uppercase italic">Insurance Vault</h1>
+                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Authorized: <span x-text="currentUserEmail"></span></p>
+                </div>
+                <button @click="logout()" class="text-[10px] font-black bg-rose-900/30 text-rose-400 px-4 py-2 rounded-lg border border-rose-500/20">LOCK VAULT</button>
+            </div>
+
+            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="glass-card p-8 rounded-[2rem]">
+                    <p class="text-[10px] font-black text-slate-500 uppercase mb-2">Total Claimed</p>
+                    <p class="text-3xl font-black" x-text="'Rs. ' + totalClaimed().toLocaleString()"></p>
+                </div>
+                <div class="glass-card p-8 rounded-[2rem] border-blue-500/30">
+                    <p class="text-[10px] font-black text-blue-400 uppercase mb-2">Total Settled</p>
+                    <p class="text-3xl font-black" x-text="'Rs. ' + totalSettled().toLocaleString()"></p>
+                </div>
+                <div class="glass-card p-8 rounded-[2rem] border-rose-500/30">
+                    <p class="text-[10px] font-black text-rose-400 uppercase mb-2">Outstanding</p>
+                    <p class="text-3xl font-black" x-text="'Rs. ' + (totalClaimed() - totalSettled()).toLocaleString()"></p>
+                </div>
+            </div>
+
+            <div class="max-w-7xl mx-auto glass-card rounded-[2.5rem] overflow-hidden">
+                <div class="p-8 border-b border-white/5">
+                    <button @click="openModal()" class="bg-blue-600 px-8 py-3 rounded-xl font-black text-xs">＋ NEW ENTRY</button>
+                </div>
+                <table class="w-full text-left">
+                    <thead class="bg-white/5 text-[10px] font-black uppercase text-slate-500">
+                        <tr>
+                            <th class="px-8 py-5">Employee</th>
+                            <th class="px-8 py-5 text-right">Claim</th>
+                            <th class="px-8 py-5 text-right">Deposited</th>
+                            <th class="px-8 py-5 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        <template x-for="item in claims" :key="item.id">
+                            <tr class="hover:bg-white/[0.02]">
+                                <td class="px-8 py-6">
+                                    <p class="font-black uppercase" x-text="item.name"></p>
+                                    <p class="text-[10px] text-slate-500" x-text="item.softDate"></p>
+                                </td>
+                                <td class="px-8 py-6 text-right font-black" x-text="Number(item.amountClaimed).toLocaleString()"></td>
+                                <td class="px-8 py-6 text-right font-black text-emerald-400" x-text="item.amountDeposited ? Number(item.amountDeposited).toLocaleString() : 'PENDING'"></td>
+                                <td class="px-8 py-6 text-right space-x-4">
+                                    <button @click="editClaim(item)" class="text-blue-400 font-black text-[10px] uppercase">Edit</button>
+                                    <button @click="deleteClaim(item.id)" class="text-rose-500 font-black text-[10px] uppercase">Del</button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <div x-show="showForm" x-cloak class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-2xl rounded-[3rem] p-10">
+            <h3 class="text-2xl font-black mb-8 uppercase">Claim Details</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="col-span-2"><label class="text-[10px] font-black uppercase text-slate-500">Name</label><input type="text" x-model="form.name" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black uppercase text-slate-500">Claim Amount</label><input type="number" x-model="form.amountClaimed" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black uppercase text-slate-500">Service Charge</label><input type="number" x-model="form.serviceCharge" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black uppercase text-slate-500">Tax Deducted</label><input type="number" x-model="form.taxAmount" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black uppercase text-slate-500">Final Deposit</label><input type="number" x-model="form.amountDeposited" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black uppercase text-slate-500">Claim Date</label><input type="date" x-model="form.softDate" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black uppercase text-slate-500">Deposit Date</label><input type="date" x-model="form.depositDate" class="w-full input-dark p-4 rounded-2xl font-bold"></div>
+            </div>
+            <div class="flex gap-4 mt-10">
+                <button @click="saveClaim()" class="flex-1 bg-blue-600 text-white p-5 rounded-2xl font-black">SAVE ENTRY</button>
+                <button @click="showForm = false" class="px-8 text-slate-500 font-bold uppercase text-xs">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyAOTE2f_iGVlR3u-hZ5n5OPaRXnuYmA9gQ", authDomain: "insurancetracker-69b69.firebaseapp.com", databaseURL: "https://insurancetracker-69b69-default-rtdb.firebaseio.com", projectId: "insurancetracker-69b69", storageBucket: "insurancetracker-69b69.firebasestorage.app", messagingSenderId: "419918361385", appId: "1:419918361385:web:01ec2d6b32b0df6988fd38" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        function insuranceSystem() {
+            return {
+                isLoggedIn: false, currentUserEmail: '', superAdmin: 'sameer.pokharel@innovatetech.co',
+                loginEmail: '', loginPassword: '', showForm: false, claims: [],
+                form: { id: null, name: '', softDate: '', amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 },
+                init() { 
+                    firebase.auth().onAuthStateChanged(user => { 
+                        if (user && user.email === this.superAdmin) { 
+                            this.isLoggedIn = true; 
+                            this.currentUserEmail = user.email; 
+                            this.loadData(); 
+                        } else { 
+                            this.isLoggedIn = false; 
+                        } 
+                    }); 
+                },
+                login() { firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).then(() => { return firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword); }).then(() => { window.location.reload(); }); },
+                logout() { firebase.auth().signOut().then(() => { this.isLoggedIn = false; window.location.reload(); }); },
+                loadData() { db.ref('insurance_private').on('value', snap => { const d = snap.val(); this.claims = d ? Object.values(d).reverse() : []; }); },
+                totalClaimed() { return this.claims.reduce((a, b) => a + Number(b.amountClaimed || 0), 0); },
+                totalSettled() { return this.claims.reduce((a, b) => a + Number(b.amountDeposited || 0), 0); },
+                saveClaim() { const id = this.form.id || Date.now(); db.ref('insurance_private/'+id).set({...this.form, id: id}); this.showForm = false; },
+                deleteClaim(id) { if(confirm('Delete?')) db.ref('insurance_private/'+id).remove(); },
+                openModal() { this.form = { id: null, name: '', softDate: new Date().toISOString().split('T')[0], amountClaimed: 0, amountDeposited: 0, depositDate: '', serviceCharge: 0, taxAmount: 0 }; this.showForm = true; },
+                editClaim(item) { this.form = {...item}; this.showForm = true; }
+            }
+        }
+    </script>
 </body>
 </html>
